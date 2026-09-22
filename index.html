@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalendarz Pielęgniarstwo</title>
+    <style>
+        :root {
+            --bg-main: #1e1e1e;
+            --bg-panel: #2d2d30;
+            --grid-line: #3e3e42;
+            --grid-line-half: rgba(255, 255, 255, 0.04);
+            --text-main: #e8eaed;
+            --text-muted: #9aa0a6;
+            
+            /* Domyślne kolory */
+            --wyklad-bg: rgba(66, 133, 244, 0.25);
+            --wyklad-border: #4285f4;
+            --cwiczenia-bg: rgba(52, 168, 83, 0.25);
+            --cwiczenia-border: #34a853;
+            
+            /* Nowe kolory */
+            --wybor-bg: rgba(230, 108, 134, 0.25); /* #e66c86 */
+            --wybor-border: #e66c86;
+            --seminarium-bg: rgba(232, 242, 136, 0.25); /* #e8f288 */
+            --seminarium-border: #e8f288;
+            --lab-bg: rgba(242, 153, 97, 0.25); /* #f29961 */
+            --lab-border: #f29961;
+            --sm-bg: rgba(164, 126, 224, 0.25); /* #a47ee0 */
+            --sm-border: #a47ee0;
+
+            --hour-height: 60px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- NAGŁÓWEK --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background-color: var(--bg-main);
+            border-bottom: 1px solid var(--grid-line);
+        }
+
+        .header-left, .header-right { display: flex; align-items: center; gap: 15px; }
+        h1 { font-size: 20px; margin: 0; font-weight: 400; }
+
+        .btn {
+            background: transparent; color: var(--text-main); border: 1px solid var(--grid-line);
+            padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.2s;
+        }
+        .btn:hover { background: rgba(255,255,255,0.1); }
+
+        select {
+            background-color: var(--bg-panel); color: var(--text-main); border: 1px solid var(--grid-line);
+            padding: 8px 12px; border-radius: 4px; font-size: 14px; outline: none; cursor: pointer;
+        }
+
+        .week-label { font-size: 18px; min-width: 180px; text-align: center; }
+
+        /* --- SIATKA KALENDARZA --- */
+        .calendar-container {
+            flex: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+        }
+
+        .days-header {
+            display: grid; 
+            grid-template-columns: 60px repeat(5, 2fr) repeat(2, 0.8fr);
+            border-bottom: 1px solid var(--grid-line); position: sticky; top: 0;
+            background-color: var(--bg-main); z-index: 20;
+        }
+
+        .day-title {
+            text-align: center; padding: 10px 0; border-left: 1px solid var(--grid-line);
+            display: flex; flex-direction: column; gap: 4px;
+        }
+
+        .day-name { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 500;}
+        .day-number { font-size: 24px; font-weight: 400; }
+        .time-cell-empty { width: 60px; }
+
+        .grid-body {
+            display: grid; 
+            grid-template-columns: 60px repeat(5, 2fr) repeat(2, 0.8fr);
+            position: relative; border-top: 1px solid var(--grid-line);
+        }
+
+        .time-column {
+            display: flex; flex-direction: column; border-right: 1px solid var(--grid-line);
+            background-color: var(--bg-main); z-index: 10;
+        }
+
+        .time-label {
+            height: var(--hour-height); position: relative; width: 100%;
+        }
+
+        .time-label span {
+            position: absolute; top: -8px; right: 8px;
+            font-size: 11px; color: var(--text-muted);
+        }
+
+        .day-column {
+            position: relative; border-left: 1px solid var(--grid-line);
+            background-image: 
+                linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-line-half) 1px, transparent 1px);
+            background-size: 100% var(--hour-height), 100% 30px;
+        }
+
+        /* --- WYDARZENIA --- */
+        .event {
+            position: absolute; left: 2px; right: 4px; border-radius: 4px; 
+            padding: 3px 6px; 
+            font-size: 11px; overflow: hidden; box-sizing: border-box; 
+            border-left: 4px solid; display: flex; flex-direction: column; gap: 1px;
+            transition: transform 0.1s, box-shadow 0.1s;
+            z-index: 2;
+        }
+        
+        .event:hover {
+            transform: scale(1.01);
+            z-index: 50 !important;
+            height: max-content !important; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border-right: 1px solid var(--grid-line);
+            border-bottom: 1px solid var(--grid-line);
+            border-top: 1px solid var(--grid-line);
+        }
+
+        /* Przypisanie kolorów do klas */
+        .event-wyklad { background-color: var(--wyklad-bg); border-left-color: var(--wyklad-border); }
+        .event-cwiczenia { background-color: var(--cwiczenia-bg); border-left-color: var(--cwiczenia-border); }
+        .event-wybor { background-color: var(--wybor-bg); border-left-color: var(--wybor-border); }
+        .event-seminarium { background-color: var(--seminarium-bg); border-left-color: var(--seminarium-border); }
+        .event-lab { background-color: var(--lab-bg); border-left-color: var(--lab-border); }
+        .event-sm { background-color: var(--sm-bg); border-left-color: var(--sm-border); }
+
+        .event-title { font-weight: 600; font-size: 11px; line-height: 1.2; }
+        .event-time { font-size: 10px; opacity: 0.9; line-height: 1.1; margin-bottom: 2px; }
+        .event-details { font-size: 10px; opacity: 0.8; line-height: 1.2; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <h1>Rozkład zajęć</h1>
+            <select id="groupSelect" onchange="renderWeek()">
+                <option value="A1">Grupa A1</option>
+                <option value="A2">Grupa A2</option>
+                <option value="A3">Grupa A3</option>
+                <option value="A4">Grupa A4</option>
+                <option value="A5">Grupa A5</option>
+                <option value="A6">Grupa A6</option>
+                <option value="A7">Grupa A7</option>
+                <option value="A8">Grupa A8</option>
+                <option value="A9">Grupa A9</option>
+                <option value="A10">Grupa A10</option>
+                <option value="A11">Grupa A11</option>
+                <option value="A12">Grupa A12</option>
+            </select>
+        </div>
+        <div class="header-right">
+            <button class="btn" onclick="changeWeek(-1)">❮ Poprzedni</button>
+            <div class="week-label" id="weekLabel">...</div>
+            <button class="btn" onclick="changeWeek(1)">Następny ❯</button>
+        </div>
+    </div>
+
+    <div class="calendar-container">
+        <div class="days-header" id="daysHeader"></div>
+        
+        <div class="grid-body">
+            <div class="time-column" id="timeColumn"></div>
+            <div class="day-column" id="col-1"></div>
+            <div class="day-column" id="col-2"></div>
+            <div class="day-column" id="col-3"></div>
+            <div class="day-column" id="col-4"></div>
+            <div class="day-column" id="col-5"></div>
+            <div class="day-column" id="col-6"></div>
+            <div class="day-column" id="col-0"></div> 
+        </div>
+    </div>
+
+<script>
+        const HOUR_START = 7; 
+        const HOUR_END = 20;  
+
+        let currentDate = new Date("2026-10-01T00:00:00"); 
+
+        // PEŁNA BAZA ZAJĘĆ
+        const zajecia = [
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16","2026-11-23","2026-11-30","2026-12-07","2026-12-14","2026-12-21","2027-01-11","2027-01-18","2027-01-25"],
+  od: "07:00", do: "13:30",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G200", prowadzacy: "mgr K. Moździerz",
+  grupy: ["A8"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16","2026-11-23","2026-11-30","2026-12-07","2026-12-14","2026-12-21","2027-01-11","2027-01-18","2027-01-25"],
+  od: "07:00", do: "13:30",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G202", prowadzacy: "dr A. Grochowska, prof. AT",
+  grupy: ["A9"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16","2026-11-23","2026-11-30","2026-12-07","2026-12-14","2026-12-21","2027-01-11","2027-01-18","2027-01-25"],
+  od: "07:00", do: "13:30",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G204", prowadzacy: "mgr A. Wrona",
+  grupy: ["A10"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16","2026-11-23","2026-11-30","2026-12-07","2026-12-14","2026-12-21","2027-01-11","2027-01-18","2027-01-25"],
+  od: "13:35", do: "19:55",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G202", prowadzacy: "dr A. Grochowska, prof. AT",
+  grupy: ["A2"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16","2026-11-23","2026-11-30","2026-12-07","2026-12-14","2026-12-21","2027-01-11","2027-01-18","2027-01-25"],
+  od: "13:35", do: "19:55",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G200", prowadzacy: "mgr K. Moździerz",
+  grupy: ["A1"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16","2026-11-23","2026-11-30","2026-12-07","2026-12-14","2026-12-21","2027-01-11","2027-01-18","2027-01-25"],
+  od: "13:35", do: "19:55",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G204", prowadzacy: "mgr A. Wrona",
+  grupy: ["A3"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19"],
+  od: "09:30", do: "13:15",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["LO1"]
+},
+{
+  daty: ["2026-10-26","2026-11-09","2026-11-16"],
+  od: "09:30", do: "13:15",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["LO2"]
+},
+{
+  daty: ["2026-11-23","2026-11-30","2026-12-07"],
+  od: "09:30", do: "13:15",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["LO3"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19"],
+  od: "13:45", do: "17:30",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["LO4"]
+},
+{
+  daty: ["2026-10-26","2026-11-09","2026-11-16"],
+  od: "13:45", do: "17:30",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["LO5"]
+},
+{
+  daty: ["2026-12-14"],
+  od: "09:00", do: "10:30",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr A. Nosiadek",
+  grupy: ["A5","A6"]
+},
+{
+  daty: ["2026-12-14"],
+  od: "10:30", do: "12:00",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr A. Nosiadek",
+  grupy: ["A3","A4"]
+},
+{
+  daty: ["2026-12-14"],
+  od: "12:00", do: "13:30",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr A. Nosiadek",
+  grupy: ["A1","A2"]
+},
+{
+  daty: ["2026-12-14"],
+  od: "13:40", do: "15:10",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr A. Nosiadek",
+  grupy: ["A9","A10"]
+},
+{
+  daty: ["2026-12-14"],
+  od: "15:10", do: "16:40",
+  przedmiot: "Biochemia i biofizyka", typ: "Lab (LO)",
+  sala: " B012", prowadzacy: "dr A. Nosiadek",
+  grupy: ["A7","A8"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16"],
+  od: "15:00", do: "16:35",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "mgr W. Ryba",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-09","2026-11-16"],
+  od: "16:35", do: "18:10",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "mgr W. Ryba",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-12-21","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],
+  od: "07:00", do: "09:15",
+  przedmiot: "Psychologia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "mgr N. Moczyróg-Mikoś",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-12-21","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],
+  od: "09:15", do: "11:30",
+  przedmiot: "Psychologia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "mgr N. Moczyróg-Mikoś",
+  grupy: ["T1"]
+},
+{
+  daty: ["2026-12-21","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],
+  od: "07:00", do: "09:15",
+  przedmiot: "Mikrobiologia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "prof. J. Cebulski",
+  grupy: ["A1","A2"]
+},
+{
+  daty: ["2026-12-21","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],
+  od: "09:15", do: "11:30",
+  przedmiot: "Mikrobiologia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "prof. J. Cebulski",
+  grupy: ["A5","A4"]
+},
+{
+  daty: ["2026-12-21","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],
+  od: "11:30", do: "13:15",
+  przedmiot: "Mikrobiologia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "prof. J. Cebulski",
+  grupy: ["A3","A6"]
+},
+{
+  daty: ["2026-12-21","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],
+  od: "13:45", do: "17:00",
+  przedmiot: "Mikrobiologia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "prof. J. Cebulski",
+  grupy: ["A10","A9"]
+},
+{
+  daty: ["2026-12-21","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],
+  od: "16:30", do: "18:45",
+  przedmiot: "Mikrobiologia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "prof. J. Cebulski",
+  grupy: ["A7","A8"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03"],
+  od: "10:30", do: "12:00",
+  przedmiot: "Etyka zawodu pielęgniarki", typ: "Ćwiczenia",
+  sala: "A343", prowadzacy: "mgr K. Florek-Tarczoń",
+  grupy: ["A1","A2","A3"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03"],
+  od: "12:00", do: "13:30",
+  przedmiot: "Etyka zawodu pielęgniarki", typ: "Ćwiczenia",
+  sala: "A343", prowadzacy: "mgr K. Florek-Tarczoń",
+  grupy: ["A6","A7","A8"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03"],
+  od: "13:30", do: "15:00",
+  przedmiot: "Etyka zawodu pielęgniarki", typ: "Ćwiczenia",
+  sala: "A343", prowadzacy: "mgr K. Florek-Tarczoń",
+  grupy: ["A4","A5","A9","A10"]
+},
+{
+  daty: ["2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08","2026-12-15","2026-12-22","2027-01-12","2027-01-19","2027-01-26","2027-02-02"],
+  od: "13:15", do: "14:25",
+  przedmiot: "Pedagogika", typ: "Ćwiczenia",
+  sala: "A343", prowadzacy: "dr W. Kulesza",
+  grupy: ["A1"]
+},
+{
+  daty: ["2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08","2026-12-15","2026-12-22","2027-01-12","2027-01-19","2027-01-26","2027-02-02"],
+  od: "13:15", do: "14:25",
+  przedmiot: "Pedagogika", typ: "Ćwiczenia",
+  sala: "A343", prowadzacy: "prof. AT",
+  grupy: ["A2"]
+},
+{
+  daty: ["2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08","2026-12-15","2026-12-22","2027-01-12","2027-01-19","2027-01-26","2027-02-02"],
+  od: "13:15", do: "14:25",
+  przedmiot: "Pedagogika", typ: "Ćwiczenia",
+  sala: "A343", prowadzacy: "prof. AT",
+  grupy: ["A3"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03"],
+  od: "14:45", do: "17:00",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Ćwiczenia",
+  sala: "A323", prowadzacy: "mgr W. Ryba",
+  grupy: ["T1"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03","2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08","2026-12-15","2026-12-22","2027-01-12","2027-01-19","2027-01-26","2027-02-02"],
+  od: "07:00", do: "13:30",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G200", prowadzacy: "dr B. Jurkiewicz",
+  grupy: ["A4"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03","2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08","2026-12-15","2026-12-22","2027-01-12","2027-01-19","2027-01-26","2027-02-02"],
+  od: "07:00", do: "13:30",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G202", prowadzacy: "mgr A. Ciapocha",
+  grupy: ["A5"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03","2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08","2026-12-15","2026-12-22","2027-01-12","2027-01-19","2027-01-26","2027-02-02"],
+  od: "13:35", do: "19:55",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G200", prowadzacy: "dr B. Jurkiewicz",
+  grupy: ["A6"]
+},
+{
+  daty: ["2026-10-06","2026-10-13","2026-10-20","2026-10-27","2026-11-03","2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08","2026-12-15","2026-12-22","2027-01-12","2027-01-19","2027-01-26","2027-02-02"],
+  od: "13:35", do: "19:55",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Symulacja medyczna (SM)",
+  sala: "G202", prowadzacy: "mgr A. Ciapocha",
+  grupy: ["A7"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28","2026-11-04","2026-11-18","2026-11-25","2026-12-02","2026-12-09","2026-12-16","2026-12-23","2027-01-13","2027-01-20","2027-01-27","2027-02-03"],
+  od: "08:00", do: "09:30",
+  przedmiot: "Język angielski", typ: "Ćwiczenia",
+  sala: "Sale według SJO", prowadzacy: "?",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28"],
+  od: "09:45", do: "12:00",
+  przedmiot: "Genetyka", typ: "Wykład",
+  sala: "B028", prowadzacy: "dr M. Szopa",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28"],
+  od: "12:15", do: "13:45",
+  przedmiot: "Genetyka", typ: "Wykład",
+  sala: "B028", prowadzacy: "dr M. Szopa",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28"],
+  od: "14:00", do: "15:50",
+  przedmiot: "Genetyka", typ: "Ćwiczenia",
+  sala: "A102", prowadzacy: "dr M. Szopa",
+  grupy: ["T1"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28"],
+  od: "15:50", do: "17:40",
+  przedmiot: "Genetyka", typ: "Ćwiczenia",
+  sala: "A102", prowadzacy: "dr M. Szopa",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28"],
+  od: "17:40", do: "19:30",
+  przedmiot: "Genetyka", typ: "Ćwiczenia",
+  sala: "A102", prowadzacy: "dr M. Szopa",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-11-04","2026-11-18","2026-11-25","2026-12-02","2026-12-09","2026-12-16","2026-12-23","2027-01-13","2027-01-20","2027-01-27"],
+  od: "09:45", do: "10:30",
+  przedmiot: "Pedagogika", typ: "Wykład",
+  sala: "B028", prowadzacy: "dr W. Kulesza, prof. AT",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-11-04","2026-11-18","2026-11-25","2026-12-02","2026-12-09"],
+  od: "10:30", do: "12:45",
+  przedmiot: "Pedagogika", typ: "Ćwiczenia",
+  sala: "A319", prowadzacy: "dr W. Kulesza, prof. AT ?",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-11-04","2026-11-18","2026-11-25","2026-12-02","2026-12-09"],
+  od: "12:45", do: "15:00",
+  przedmiot: "Pedagogika", typ: "Ćwiczenia",
+  sala: "A319", prowadzacy: "dr W. Kulesza, prof. AT ?",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28"],
+  od: "14:30", do: "16:00",
+  przedmiot: "Psychologia", typ: "Ćwiczenia",
+  sala: "A319", prowadzacy: "mgr M. Fleszar",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-10-07","2026-10-14","2026-10-21","2026-10-28"],
+  od: "16:10", do: "17:30",
+  przedmiot: "Psychologia", typ: "Ćwiczenia",
+  sala: "A319", prowadzacy: "mgr M. Fleszar",
+  grupy: ["T3"]
+},
+{
+  daty: ["2027-01-13","2027-01-20","2027-01-27"],
+  od: "10:45", do: "12:15",
+  przedmiot: "Mikrobiologia", typ: "Lab (LO)",
+  sala: "B012", prowadzacy: "?",
+  grupy: ["A10","A9"]
+},
+{
+  daty: ["2027-01-13","2027-01-20","2027-01-27"],
+  od: "12:15", do: "13:45",
+  przedmiot: "Mikrobiologia", typ: "Lab (LO)",
+  sala: "B012", prowadzacy: "?",
+  grupy: ["A8","A7"]
+},
+{
+  daty: ["2027-01-13","2027-01-20","2027-01-27"],
+  od: "13:45", do: "15:15",
+  przedmiot: "Mikrobiologia", typ: "Lab (LO)",
+  sala: "B012", prowadzacy: "?",
+  grupy: ["A5","A6"]
+},
+{
+  daty: ["2027-01-13","2027-01-20","2027-01-27"],
+  od: "15:15", do: "16:45",
+  przedmiot: "Mikrobiologia", typ: "Lab (LO)",
+  sala: "B012", prowadzacy: "?",
+  grupy: ["A3","A4"]
+},
+{
+  daty: ["2027-01-13","2027-01-20","2027-01-27"],
+  od: "16:45", do: "18:15",
+  przedmiot: "Mikrobiologia", typ: "Lab (LO)",
+  sala: "B012", prowadzacy: "?",
+  grupy: ["A1","A2"]
+},
+{
+  daty: ["2026-10-08","2026-10-15","2026-10-22","2026-10-29","2026-11-05"],
+  od: "07:30", do: "09:00",
+  przedmiot: "Psychologia", typ: "Wykład",
+  sala: "G120", prowadzacy: "dr W. Srebro",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-01","2026-11-12","2026-11-19","2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "07:30", do: "09:00",
+  przedmiot: "Pielęgniarstwo w POZ", typ: "Wykład",
+  sala: "G120", prowadzacy: "mgr D. Rybska",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-01","2026-10-08","2026-10-15","2026-10-22","2026-10-29","2026-11-05","2026-11-12","2026-11-19","2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "09:15", do: "10:45",
+  przedmiot: "Zdrowie publiczne", typ: "Wykład",
+  sala: "G120", prowadzacy: "dr M. Mika, prof. AT",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-01","2026-10-08","2026-10-15","2026-10-22","2026-10-29","2026-11-05","2026-11-12","2026-11-19","2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "11:05", do: "12:20",
+  przedmiot: "Mikrobiologia i parazytologia", typ: "Wykład",
+  sala: "Sala", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-01","2026-10-08"],
+  od: "12:30", do: "14:45",
+  przedmiot: "Biochemia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-10-01","2026-10-08"],
+  od: "14:45", do: "17:00",
+  przedmiot: "Biochemia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-10-01","2026-10-08"],
+  od: "17:00", do: "19:15",
+  przedmiot: "Biochemia", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "dr M. Olchawa-Pajor",
+  grupy: ["T1"]
+},
+{
+  daty: ["2026-10-15","2026-10-22","2026-10-29","2026-11-05","2026-11-12","2026-11-19","2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "12:30", do: "14:45",
+  przedmiot: "Zdrowie publiczne", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "dr M. Mika, prof. AT",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-10-15","2026-10-22","2026-10-29","2026-11-05","2026-11-12","2026-11-19","2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "14:00", do: "15:30",
+  przedmiot: "Zdrowie publiczne", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "dr M. Mika, prof. AT",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-10-15","2026-10-22","2026-10-29","2026-11-05","2026-11-12","2026-11-19","2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "15:30", do: "17:00",
+  przedmiot: "Zdrowie publiczne", typ: "Ćwiczenia",
+  sala: "Sala", prowadzacy: "dr M. Mika, prof. AT",
+  grupy: ["T1"]
+},
+{
+  daty: ["2026-10-15","2026-10-22","2026-10-29"],
+  od: "17:15", do: "19:45",
+  przedmiot: "Etyka", typ: "Wykład",
+  sala: "Sala", prowadzacy: "mgr K. Florek-Tarczoń",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-11-05","2026-11-12","2026-11-19"],
+  od: "17:15", do: "19:45",
+  przedmiot: "Anatomia", typ: "Wykład",
+  sala: "G120", prowadzacy: "mgr E. Smoła",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "15:00", do: "16:35",
+  przedmiot: "Dietetyka", typ: "Ćwiczenia",
+  sala: "G120 / A315?", prowadzacy: "mgr M. Kuboń",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "16:35", do: "18:10",
+  przedmiot: "Dietetyka", typ: "Ćwiczenia",
+  sala: "G120 / A317?", prowadzacy: "mgr M. Kuboń",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "18:10", do: "19:45",
+  przedmiot: "Dietetyka", typ: "Ćwiczenia",
+  sala: "G120 / A317?", prowadzacy: "mgr M. Kuboń",
+  grupy: ["T1"]
+},
+{
+  daty: ["2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "16:35", do: "18:10",
+  przedmiot: "Zasoby i system informatyczny w ochronie zdrowia", typ: "Ćwiczenia",
+  sala: "A315", prowadzacy: "dr hab. M. Pasek, prof. AT",
+  grupy: ["T2"]
+},
+{
+  daty: ["2026-11-26","2026-12-03","2026-12-10","2026-12-17","2027-01-14","2027-01-21","2027-01-28"],
+  od: "18:10", do: "19:45",
+  przedmiot: "Zasoby i system informatyczny w ochronie zdrowia", typ: "Ćwiczenia",
+  sala: "A315", prowadzacy: "dr hab. M. Pasek, prof. AT",
+  grupy: ["T3"]
+},
+{
+  daty: ["2026-10-02","2026-10-09","2026-10-16","2026-10-23","2026-10-30","2026-11-06","2026-11-13","2026-11-20","2026-11-27","2026-12-04","2026-12-11","2026-12-18","2027-01-15","2027-01-22","2027-01-29"],
+  od: "08:00", do: "09:30",
+  przedmiot: "Wychowanie fizyczne", typ: "Ćwiczenia",
+  sala: "Według zapisów", prowadzacy: "-",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-02","2026-10-09","2026-10-16","2026-10-23"],
+  od: "09:45", do: "11:15",
+  przedmiot: "Anatomia", typ: "Wykład",
+  sala: "A120", prowadzacy: "mgr E. Smoła",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-02","2026-10-09","2026-10-16","2026-10-23"],
+  od: "11:30", do: "13:45",
+  przedmiot: "Anatomia", typ: "Wykład",
+  sala: "A120", prowadzacy: "mgr E. Smoła",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-30","2026-11-13","2026-11-20","2026-12-04","2026-12-18"],
+  od: "09:45", do: "13:40",
+  przedmiot: "Anatomia", typ: "Seminarium",
+  sala: "G311 | 9.45-10.40 NR 1-20 | 10.45-11.40 NR 21-40 | 11.45-12.40 NR 41-60 | 12.45-13.40 NR 61-80", prowadzacy: "mgr E. Smoła",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2027-01-15","2027-01-22","2027-01-29"],
+  od: "09:45", do: "11:15",
+  przedmiot: "Zasoby i system informatyczny w ochronie zdrowia", typ: "Ćwiczenia",
+  sala: "A329", prowadzacy: "dr hab. M. Pasek, prof. AT",
+  grupy: ["T1"]
+},
+{
+  daty: ["2027-01-15","2027-01-22","2027-01-29"],
+  od: "11:30", do: "13:00",
+  przedmiot: "Zasoby i system informatyczny w ochronie zdrowia", typ: "Ćwiczenia",
+  sala: "A329", prowadzacy: "dr hab. M. Pasek, prof. AT",
+  grupy: ["T1"]
+},
+{
+  daty: ["2027-01-15","2027-01-22","2027-01-29"],
+  od: "13:15", do: "14:00",
+  przedmiot: "Zasoby i system informatyczny w ochronie zdrowia", typ: "Ćwiczenia",
+  sala: "A329", prowadzacy: "dr hab. M. Pasek, prof. AT",
+  grupy: ["T1"]
+},
+{
+  daty: ["2026-11-06","2026-11-13"],
+  od: "14:45", do: "17:00",
+  przedmiot: "Dietetyka", typ: "Wykład",
+  sala: "G120", prowadzacy: "mgr M. Kuboń",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-11-06","2026-11-13"],
+  od: "17:15", do: "18:45",
+  przedmiot: "Dietetyka", typ: "Wykład",
+  sala: "G120", prowadzacy: "mgr M. Kuboń",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-02","2026-10-09","2026-10-16","2026-10-23","2026-10-30","2026-11-27","2026-12-04","2026-12-11","2026-12-18","2027-01-15"],
+  od: "14:45", do: "17:00",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Wykład",
+  sala: "G120", prowadzacy: "mgr W. Ryba",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-10-02","2026-10-09","2026-10-16","2026-10-23","2026-10-30","2026-11-27","2026-12-04","2026-12-11","2026-12-18","2027-01-15"],
+  od: "17:15", do: "18:45",
+  przedmiot: "Podstawy pielęgniarstwa", typ: "Wykład",
+  sala: "G120", prowadzacy: "mgr W. Ryba",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-11-20"],
+  od: "14:45", do: "17:00",
+  przedmiot: "Zasoby i system informatyczny w ochronie zdrowia", typ: "Wykład",
+  sala: "G120", prowadzacy: "dr hab. M. Pasek, prof. AT",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-11-20"],
+  od: "17:15", do: "18:45",
+  przedmiot: "Zasoby i system informatyczny w ochronie zdrowia", typ: "Wykład",
+  sala: "G120", prowadzacy: "dr hab. M. Pasek, prof. AT",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2027-01-22","2027-01-29"],
+  od: "14:45", do: "17:00",
+  przedmiot: "Fizjologia", typ: "Wykład",
+  sala: "G120", prowadzacy: "dr A. Gawlik-Urban",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2027-01-22","2027-01-29"],
+  od: "17:15", do: "18:45",
+  przedmiot: "Fizjologia", typ: "Wykład",
+  sala: "G120", prowadzacy: "dr A. Gawlik-Urban",
+  grupy: ["Wszyscy"]
+},
+{
+  daty: ["2026-11-04","2026-11-18","2026-11-25","2026-12-02","2026-12-09","2026-12-16","2026-12-23","2027-01-13","2027-01-20","2027-01-27"],
+  od: "15:15", do: "16:45",
+  przedmiot: "Język migowy / Telemedycyna i e-zdrowie", typ: "Seminarium",
+  sala: "A319 / ?", prowadzacy: "mgr J. Sikora / mgr P. Popek",
+  grupy: ["A1","A2","A5","A6","A7","A8","A9","A10","A11","A12"]
+},
+{
+  daty: ["2026-11-04","2026-11-18","2026-11-25","2026-12-02","2026-12-09","2026-12-16","2026-12-23","2027-01-13","2027-01-20","2027-01-27"],
+  od: "16:45", do: "18:15",
+  przedmiot: "Język migowy / Telemedycyna i e-zdrowie", typ: "Seminarium",
+  sala: "A319 / ?", prowadzacy: "mgr J. Sikora / mgr P. Popek",
+  grupy: ["A5","A6","A7","A8","A9","A10","A11","A12","A3","A4"]
+}
+];
+
+        // LOGIKA PRZYPISYWANIA GRUP
+        function getWszystkieGrupyStudenta(wybranaGrupa) {
+            let przypisane = ["Wszyscy", wybranaGrupa];
+            
+            if (["A1", "A2", "A3"].includes(wybranaGrupa)) przypisane.push("T1");
+            if (["A4", "A5", "A6"].includes(wybranaGrupa)) przypisane.push("T2");
+            if (["A7", "A8", "A9"].includes(wybranaGrupa)) przypisane.push("T3");
+            if (["A10", "A11", "A12"].includes(wybranaGrupa)) przypisane.push("T4");
+
+            if (["A1", "A2"].includes(wybranaGrupa)) przypisane.push("LO1");
+            if (["A3", "A4"].includes(wybranaGrupa)) przypisane.push("LO2");
+            if (["A5", "A6"].includes(wybranaGrupa)) przypisane.push("LO3");
+            if (["A7", "A8"].includes(wybranaGrupa)) przypisane.push("LO4");
+            if (["A9", "A10"].includes(wybranaGrupa)) przypisane.push("LO5");
+            if (["A11", "A12"].includes(wybranaGrupa)) przypisane.push("LO6");
+
+            return przypisane;
+        }
+
+        // Nawigacja
+        function changeWeek(offset) {
+            currentDate.setDate(currentDate.getDate() + (offset * 7));
+            renderWeek();
+        }
+
+        function getMonday(d) {
+            d = new Date(d);
+            var day = d.getDay(), diff = d.getDate() - day + (day == 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        // Renderowanie całego widoku
+        function renderWeek() {
+            const monday = getMonday(currentDate);
+            monday.setHours(0,0,0,0);
+            
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            sunday.setHours(23,59,59,999);
+            
+            const mNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
+            document.getElementById("weekLabel").innerText = 
+                `${monday.getDate()} ${mNames[monday.getMonth()]} - ${sunday.getDate()} ${mNames[sunday.getMonth()]} ${sunday.getFullYear()}`;
+
+            const daysHeader = document.getElementById("daysHeader");
+            daysHeader.innerHTML = '<div class="time-cell-empty"></div>';
+            const dNames = ["PON", "WTO", "ŚRO", "CZW", "PIĄ", "SOB", "NIE"];
+            
+            for (let i = 0; i < 7; i++) {
+                let dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + i);
+                daysHeader.innerHTML += `
+                    <div class="day-title">
+                        <span class="day-name">${dNames[i]}</span>
+                        <span class="day-number">${dayDate.getDate()}</span>
+                    </div>
+                `;
+            }
+
+            const timeColumn = document.getElementById("timeColumn");
+            if (timeColumn.innerHTML.trim() === "") {
+                for (let h = HOUR_START; h <= HOUR_END; h++) {
+                    timeColumn.innerHTML += `<div class="time-label"><span>${h}:00</span></div>`;
+                }
+            }
+
+            for (let i = 0; i <= 6; i++) {
+                document.getElementById(`col-${i}`).innerHTML = "";
+            }
+
+            const wybranaGrupa = document.getElementById("groupSelect").value;
+            const grupyStudenta = getWszystkieGrupyStudenta(wybranaGrupa);
+
+            zajecia.forEach(z => {
+                z.daty.forEach(pojedynczaData => {
+                    const [rok, miesiac, dzien] = pojedynczaData.split('-');
+                    const zDate = new Date(rok, miesiac - 1, dzien);
+                    
+                    if (zDate >= monday && zDate <= sunday) {
+                        const czyDlaMnie = z.grupy.some(g => grupyStudenta.includes(g));
+                        if (czyDlaMnie) {
+                            
+                            const [odH, odM] = z.od.split(":").map(Number);
+                            const [doH, doM] = z.do.split(":").map(Number);
+                            
+                            const topPx = ((odH - HOUR_START) * 60) + odM;
+                            const heightPx = ((doH - odH) * 60) + (doM - odM);
+
+                            // ROZPOZNAWANIE KLASY KOLORYSTYCZNEJ
+                            let typKlasa = "event-cwiczenia"; // domyślny zielony
+                            
+                            const przedmiotLower = z.przedmiot.toLowerCase();
+                            
+                            if (przedmiotLower.includes("migowy") || przedmiotLower.includes("telemedycyna")) {
+                                typKlasa = "event-wybor";
+                            } else if (z.typ.includes("Wykład")) {
+                                typKlasa = "event-wyklad";
+                            } else if (z.typ.includes("Seminarium")) {
+                                typKlasa = "event-seminarium";
+                            } else if (z.typ.includes("Lab") || z.typ.includes("LO")) {
+                                typKlasa = "event-lab";
+                            } else if (z.typ.includes("Symulacja") || z.typ.includes("SM")) {
+                                typKlasa = "event-sm";
+                            }
+
+                            const dayIndex = zDate.getDay(); 
+                            const col = document.getElementById(`col-${dayIndex}`);
+                            
+                            if (col) {
+                                col.innerHTML += `
+                                    <div class="event ${typKlasa}" style="top: ${topPx}px; height: ${heightPx}px; min-height: ${heightPx}px;">
+                                        <div class="event-title">${z.przedmiot}</div>
+                                        <div class="event-time">${z.od} - ${z.do} | ${z.typ}</div>
+                                        <div class="event-details">${z.sala} | ${z.prowadzacy}</div>
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        window.onload = renderWeek;
+    </script>
+</body>
+</html>
