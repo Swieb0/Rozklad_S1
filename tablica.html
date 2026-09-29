@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablica Ogłoszeń - Pielęgniarstwo</title>
+    <link rel="stylesheet" href="style-tablica.css">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+</head>
+<body>
+    <!-- Nagłówek spójny z rozkładem zajęć -->
+    <div class="header">
+        <div class="header-left">
+            <h1>Tablica Ogłoszeń</h1>
+        </div>
+        <div class="header-right">
+            <a href="index.html" class="btn" style="text-decoration: none;"><b style="color: #E88F80;">Wróć do Rozkładu</b></a>
+        </div>
+    </div>
+
+    <main class="container">
+        <!-- Sekcja dodawania ogłoszeń -->
+<!-- Sekcja dodawania ogłoszeń -->
+        <section class="add-post-section">
+            <details id="addPostDetails">
+                <summary class="toggle-form-btn"><b> Kliknij, aby dodać nowe ogłoszenie</b></summary>
+                
+                <div class="form-container">
+                    <form id="postForm">
+                        <input type="text" id="title" placeholder="Tytuł ogłoszenia" required>
+                        <textarea id="content" placeholder="Treść ogłoszenia..." required></textarea>
+                        
+                        <label>Data wydarzenia / ogłoszenia</label>
+                        <input type="date" id="dataWydarzenia">
+
+                        <div class="form-row">
+                            <label class="checkbox-label urgent-label">
+                                <input type="checkbox" id="isUrgent"> Oznacz jako PILNE
+                            </label>
+                        </div>
+
+                        <div class="form-row">
+                            <input type="file" id="fileUpload" disabled title="Wgrywanie plików wkrótce">
+                        </div>
+
+                        <input type="password" id="pinCode" placeholder="Podaj 6-cyfrowy PIN" required pattern="[0-9]{6}">
+                        
+                        <button type="submit" class="btn-primary">Opublikuj</button>
+                    </form>
+                </div>
+            </details>
+        </section>
+
+        <!-- Główny widok (Tablica + Kalendarz) -->
+        <div class="dashboard">
+            <section class="board-section">
+                <h2>Tablica</h2>
+                <div id="postsContainer" class="posts-grid">
+                    <p class="loading">Ładowanie ogłoszeń z chmury...</p>
+                </div>
+            </section>
+
+            <section class="calendar-section">
+                <h2>Kalendarz</h2>
+                <div id="calendar"></div>
+            </section>
+        </div>
+    </main>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

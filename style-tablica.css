@@ -1,0 +1,158 @@
+:root {
+    /* Zmienne z Twojego rozkładu zajęć */
+    --bg-main: #1e1e1e;
+    --bg-panel: #2d2d30;
+    --grid-line: #3e3e42;
+    --text-main: #e8eaed;
+    --text-muted: #9aa0a6;
+    
+    /* Akcenty dla tablicy */
+    --primary: rgba(66, 133, 244, 0.8);
+    --primary-hover: #4285f4;
+    --urgent: #e66c86;
+    --urgent-bg: rgba(230, 108, 134, 0.15);
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+}
+
+/* Nagłówek spójny z rozkładem */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    background-color: var(--bg-main);
+    border-bottom: 1px solid var(--grid-line);
+}
+.header-left, .header-right { display: flex; align-items: center; gap: 15px; }
+h1 { font-size: 20px; margin: 0; font-weight: 400; }
+.btn {
+    background: transparent; color: var(--text-main); border: 1px solid var(--grid-line);
+    padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.2s;
+}
+.btn:hover { background: rgba(255,255,255,0.1); }
+
+/* Layout tablicy */
+.container {
+    max-width: 1300px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* Formularz */
+.add-post-section {
+    background-color: var(--bg-panel);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--grid-line);
+    margin-bottom: 2rem;
+}
+
+h2 { font-size: 18px; margin-bottom: 15px; margin-top: 0; font-weight: 400; }
+
+form { display: flex; flex-direction: column; gap: 1rem; }
+input, textarea {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    border: 1px solid var(--grid-line);
+    padding: 0.8rem; 
+    border-radius: 4px; 
+    font-size: 14px;
+    outline: none;
+}
+input:focus, textarea:focus { border-color: var(--primary-hover); }
+textarea { resize: vertical; min-height: 80px; }
+
+.form-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.checkbox-label { cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px;}
+.urgent-label { color: var(--urgent); font-weight: bold; }
+
+.btn-primary {
+    background: var(--primary); color: white; border: none; padding: 10px;
+    border-radius: 4px; font-weight: 500; cursor: pointer; transition: 0.2s; font-size: 14px;
+}
+.btn-primary:hover { background: var(--primary-hover); }
+
+/* Tablica i Kalendarz */
+.dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.board-section, .calendar-section {
+    background-color: var(--bg-panel); 
+    padding: 1.5rem; 
+    border-radius: 8px;
+    border: 1px solid var(--grid-line);
+}
+
+.post-card {
+    background-color: var(--bg-main); 
+    padding: 1rem; 
+    border-radius: 6px;
+    border-left: 4px solid var(--primary); 
+    border-top: 1px solid var(--grid-line);
+    border-right: 1px solid var(--grid-line);
+    border-bottom: 1px solid var(--grid-line);
+    margin-bottom: 1rem;
+}
+.post-card.urgent { 
+    border-left-color: var(--urgent); 
+    background-color: var(--urgent-bg);
+}
+.post-title { font-size: 16px; margin-bottom: 0.5rem; margin-top: 0; font-weight: 600;}
+.post-date { font-size: 11px; color: var(--text-muted); margin-bottom: 0.8rem; }
+.post-content { font-size: 14px; line-height: 1.5; white-space: pre-wrap;}
+
+/* FullCalendar - Wymuszenie Dark Mode */
+.fc { color: var(--text-main); font-size: 14px; }
+.fc-theme-standard td, .fc-theme-standard th { border-color: var(--grid-line) !important; }
+.fc-theme-standard .fc-scrollgrid { border-color: var(--grid-line) !important; }
+.fc-button-primary { 
+    background-color: var(--bg-main) !important; 
+    border-color: var(--grid-line) !important; 
+    color: var(--text-main) !important; 
+    text-transform: capitalize;
+}
+.fc-button-primary:hover { background-color: rgba(255,255,255,0.1) !important; }
+.fc-button-primary:disabled { background-color: var(--bg-main) !important; color: var(--text-muted) !important;}
+.fc-day-today { background-color: rgba(255, 255, 255, 0.05) !important; }
+.fc-event { cursor: pointer; border-radius: 3px; border: none; padding: 2px; }
+
+@media (max-width: 850px) {
+    .dashboard { grid-template-columns: 1fr; }
+    .header { flex-direction: column; gap: 10px; }
+}
+/* Zwijany formularz */
+details > summary {
+    list-style: none; /* Ukrywa domyślną strzałkę */
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: #E88F80;
+    transition: 0.2s;
+    outline: none;
+}
+details > summary::-webkit-details-marker {
+    display: none;
+}
+details > summary:hover {
+    color: #EDCCC7;
+}
+.form-container {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--grid-line);
+}
+
+/* Poprawa widoczności kalendarza w trybie ciemnym */
+input[type="date"] {
+    color-scheme: dark; 
+}
