@@ -61,16 +61,17 @@ postForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const pinCode = document.getElementById('pinCode').value;
-    if(pinCode !== '123456') {
-        alert('❌ Nieprawidłowy kod PIN!');
+    
+    if(pinCode !== '123987') {
+        alert('Nieprawidłowy kod PIN');
         return;
     }
 
-    submitBtn.textContent = '⏳ Publikowanie...';
+    submitBtn.textContent = 'Publikowanie...';
     submitBtn.disabled = true;
 
     const inputDataWydarzenia = document.getElementById('dataWydarzenia').value;
-    const fileLink = document.getElementById('fileLink').value; // Pobieramy link, jeśli jest
+    const fileLink = document.getElementById('fileLink').value; 
     
     try {
         const newPostData = {
@@ -78,20 +79,22 @@ postForm.addEventListener('submit', async (e) => {
             content: document.getElementById('content').value,
             isUrgent: document.getElementById('isUrgent').checked,
             dataWydarzenia: inputDataWydarzenia || null,
-            fileLink: fileLink || null, // Zapisujemy link
+            fileLink: fileLink || null,
+            // 2. Dodajemy PIN do paczki danych lecących do bazy:
+            pin: pinCode, 
             createdAt: Date.now(),
             displayDate: new Date().toLocaleString('pl-PL')
         };
 
         await addDoc(collection(db, "posts"), newPostData);
         
-        alert('✅ Ogłoszenie dodane pomyślnie!');
+        alert(' Ogłoszenie dodane pomyślnie');
         postForm.reset();
         document.getElementById('addPostDetails').removeAttribute('open');
         
     } catch (error) {
         console.error("Błąd zapisu: ", error);
-        alert('❌ Wystąpił błąd podczas dodawania ogłoszenia.');
+        alert('Wystąpił błąd podczas dodawania ogłoszenia.');
     } finally {
         submitBtn.textContent = 'Opublikuj';
         submitBtn.disabled = false;
@@ -103,15 +106,15 @@ function renderPost(post) {
     const postElement = document.createElement('div');
     postElement.className = `post-card ${post.isUrgent ? 'urgent' : ''}`;
     
-    const urgentBadge = post.isUrgent ? '🚨 <b>PILNE</b> | ' : '';
-    const eventBadge = post.dataWydarzenia ? `📅 <b>Wydarzenie:</b> ${post.dataWydarzenia} | ` : '';
+    const urgentBadge = post.isUrgent ? ' <b>PILNE</b> | ' : '';
+    const eventBadge = post.dataWydarzenia ? ` <b>Wydarzenie:</b> ${post.dataWydarzenia} | ` : '';
     const dateString = post.displayDate ? post.displayDate : 'Przed chwilą';
     
     // Jeśli post zawiera link, generujemy ładny przycisk
     const linkHtml = post.fileLink 
         ? `<div style="margin-top: 15px;">
              <a href="${post.fileLink}" target="_blank" class="btn" style="text-decoration: none; display: inline-block; background: rgba(66, 133, 244, 0.1); color: var(--primary); border: 1px solid var(--primary); font-size: 13px;">
-               📎 Przejdź do załącznika
+                Przejdź do załącznika
              </a>
            </div>` 
         : '';
