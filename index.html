@@ -149,6 +149,63 @@
         .event-title { font-weight: 600; font-size: 11px; line-height: 1.2; }
         .event-time { font-size: 10px; opacity: 0.9; line-height: 1.1; margin-bottom: 2px; }
         .event-details { font-size: 10px; opacity: 0.8; line-height: 1.2; }
+        /* --- RESPANSYWNOŚĆ DLA URZĄDZEŃ MOBILNYCH --- */
+        /* --- RESPANSYWNOŚĆ DLA URZĄDZEŃ MOBILNYCH --- */
+        @media (max-width: 768px) {
+            /* 1. Przebudowa nagłówka na siatkę */
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px 10px;
+            }
+            .header-left {
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+            .header-right {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                width: 100%;
+            }
+
+            /* Poszerzenie przycisku tablicy i etykiety z datą na całą szerokość ekranu */
+            .header-right a.btn {
+                grid-column: 1 / -1;
+                text-align: center;
+            }
+            .header-right .week-label {
+                grid-column: 1 / -1;
+                margin: 5px 0;
+            }
+
+            /* 2. Zablokowanie kurczenia się kalendarza i dodanie przewijania poziomego */
+            .days-header, .grid-body {
+                min-width: 800px; /* Wymusza optymalną szerokość kolumn dla czytelności */
+            }
+
+            /* 3. "Przyklejenie" kolumny z godzinami do lewej krawędzi podczas scrollowania */
+            .time-column {
+                position: sticky;
+                left: 0;
+                z-index: 15; /* Pomiędzy wydarzeniami a nagłówkami */
+                box-shadow: 2px 0 5px rgba(0,0,0,0.3); /* Dodaje lekki cień oddzielający od zajęć */
+            }
+
+            /* "Przyklejenie" pustego rogu (lewa-góra) */
+            .time-cell-empty {
+                position: sticky;
+                left: 0;
+                z-index: 25; /* Musi być najwyżej, by nie prześwitywały pod nim dni */
+                background-color: var(--bg-main);
+            }
+
+            /* Odblokowanie poziomego przewijania na telefonach */
+            .calendar-container {
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
